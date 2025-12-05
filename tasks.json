@@ -8,7 +8,7 @@
           "run",
           "--rm",
           "-i",
-          "blank:latest"
+          "hud-blank:latest"
         ]
       }
     },
