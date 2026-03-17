@@ -2,17 +2,9 @@ FROM public.ecr.aws/docker/library/python:3.11-bookworm
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir .
 
-# Copy source code
 COPY env.py ./
-COPY backend/ ./backend/
 
-ENV BACKEND_PORT=8005
-
-# Start backend in background, then run environment
-CMD ["sh", "-c", "uvicorn backend.app:app --host 0.0.0.0 --port $BACKEND_PORT --log-level warning >&2 & sleep 0.5 && hud dev env:env --stdio"]
+CMD ["hud", "dev", "env:env", "--stdio"]
