@@ -8,6 +8,7 @@ This demonstrates:
 
 import logging
 import os
+import subprocess
 import sys
 from typing import Any
 
@@ -45,7 +46,22 @@ async def act() -> str:
     return f"Counter: {resp.json().get('count', 0)}"
 
 
-@env.scenario("count-to")
+@env.tool()
+async def hud_validate() -> str:
+    """Run the test suite to validate the environment is working correctly."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+    output = result.stdout + result.stderr
+    if result.returncode != 0:
+        raise RuntimeError(output or f"pytest exited with code {result.returncode}")
+    return output
+
+
+@env.scenario("count-to", exclude_tools=["hud_validate"])
 async def count_to(target: int = 10) -> Any:
     """Count to a target number by calling act() repeatedly."""
     await http_client.post("/reset")
