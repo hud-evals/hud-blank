@@ -3,16 +3,17 @@
 import pytest
 import httpx
 
-import backend.app as backend_module
-from backend.app import app
+from backend.app import app, _state
 
 
 @pytest.fixture(autouse=True)
 def reset_backend_state():
-    """Reset the backend counter to 0 before every test."""
-    backend_module._count = 0
+    """Reset the backend state before every test."""
+    _state["value"] = 0
+    _state["history"] = []
     yield
-    backend_module._count = 0
+    _state["value"] = 0
+    _state["history"] = []
 
 
 @pytest.fixture

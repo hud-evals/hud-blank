@@ -1,9 +1,9 @@
-"""Remote test script - Working with tasks from JSON and the platform.
+"""Remote test script - Working with tasks and the platform.
 
 This demonstrates the full workflow for remote evaluations:
 
-1. Deploy your environment to hud.ai (New → Environment → Connect GitHub repo)
-2. Create tasks from your scenarios on the platform
+1. Deploy your environment to hud.ai (New -> Environment -> Connect GitHub repo)
+2. Tasks are defined in tasks.py using scenario.task()
 3. Run evaluations locally or at scale
 
 ## Option A: Run on Platform
@@ -12,89 +12,75 @@ Run evaluations at scale directly on hud.ai with parallel execution and automati
 
 ## Option B: CLI Evaluation
 
-Run evaluations locally with the HUD CLI:
-
-    # From local JSON file
-    hud eval ./remote_tasks.json --model gpt-4o --remote
-
-    # From platform dataset
-    hud eval my-org/blank-tasks --model gpt-4o --remote --group 5
-
+    # Run all tasks
+    hud eval my-org/blank-tasks --model gpt-4o --remote
 
 ## Option C: Python Script (this file)
 
-    # Test locally with JSON tasks
+    # Run all tasks locally
     python remote_test.py
 
-    # Or uncomment functions in main() to:
-    # - Upload tasks to platform
-    # - Load and run from platform by slug
+    # Upload tasks to platform
+    python remote_test.py --upload my-org/blank-tasks
 
 
 Run the backend first: uvicorn backend.app:app --port 8005
 """
 
+import argparse
 import asyncio
 
 import hud
-from hud.agents import OpenAIChatAgent  # See all models: https://hud.ai/models
-from hud.datasets import load_tasks, save_tasks
+from hud.agents import OpenAIChatAgent
+from hud.datasets import save_tasks
+from hud.eval.task import Task
 
-from env import env
+from tasks import ALL_TASKS
+
+ENV_NAME = "blank"
 
 
-async def test_from_json():
-    """Load tasks from JSON and run locally."""
-    print("=== Load from JSON ===")
+async def test_all_tasks():
+    """Run all locally defined tasks."""
+    print(f"=== Running {len(ALL_TASKS)} tasks ===")
 
-    tasks = load_tasks("remote_tasks.json")
+    task_list = list(ALL_TASKS.values())
 
-    # Bind to local environment and run
-    bound_tasks = [env(t.scenario, **t.args) for t in tasks]
-
-    async with hud.eval(bound_tasks) as ctx:
-        agent = OpenAIChatAgent.create(model="gpt-4o")  # https://hud.ai/models
+    async with hud.eval(task_list) as ctx:
+        agent = OpenAIChatAgent.create(model="gpt-4o")
         await agent.run(ctx)
 
 
-async def test_from_platform(slug: str = "my-org/blank-tasks"):
-    """Load and run tasks from the HUD platform.
-    
-    After deploying your environment:
-    1. Go to hud.ai → Environments → Your Environment
-    2. Create tasks from your scenarios
-    3. Use the dataset slug here
-    """
-    print(f"=== Load from Platform: {slug} ===")
-
-    tasks = load_tasks(slug)
-
-    async with hud.eval(tasks) as ctx:
-        agent = OpenAIChatAgent.create(model="gpt-4o")  # https://hud.ai/models
-        await agent.run(ctx)
-
-
-async def upload_to_platform(slug: str = "my-org/blank-tasks"):
-    """Upload local tasks to the platform.
-    
-    This creates a dataset on hud.ai that you can run at scale.
-    """
+async def upload_to_platform(slug: str):
+    """Upload tasks to the platform."""
     print(f"=== Upload to Platform: {slug} ===")
 
-    tasks = load_tasks("remote_tasks.json")
-    bound_tasks = [env(t.scenario, **t.args) for t in tasks]
-
-    await save_tasks(slug, bound_tasks)
-    print(f"Saved {len(tasks)} tasks → hud eval {slug} --model gpt-4o")
+    remote_tasks = [
+        Task(
+            env={"name": ENV_NAME},
+            scenario=f"{ENV_NAME}:{task.scenario}",
+            args=task.args,
+            slug=task.slug,
+        )
+        for task in ALL_TASKS.values()
+    ]
+    save_tasks(slug, remote_tasks)
+    print(f"Saved {len(remote_tasks)} tasks -> hud eval {slug} --model gpt-4o")
 
 
 async def main():
-    # Run local JSON test by default
-    await test_from_json()
+    parser = argparse.ArgumentParser(description="Remote task operations")
+    parser.add_argument(
+        "--upload",
+        metavar="SLUG",
+        help="Upload tasks to platform (e.g. my-org/blank-tasks)",
+    )
+    args = parser.parse_args()
 
-    # Uncomment to test platform features:
-    # await upload_to_platform("my-org/blank-tasks")
-    # await test_from_platform("my-org/blank-tasks")
+    if args.upload:
+        await upload_to_platform(args.upload)
+    else:
+        await test_all_tasks()
 
 
 if __name__ == "__main__":

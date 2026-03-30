@@ -1,86 +1,46 @@
 """Local test script for the blank environment.
 
 Run the backend first: uvicorn backend.app:app --port 8005
-Then run this script: python local_test.py
+
+Usage:
+    python local_test.py --list
+    python local_test.py --task count_to_3
+    python local_test.py --task reach_efficient_100 --model gpt-4o
 """
 
+import argparse
 import asyncio
 
 import hud
 from hud.agents import OpenAIChatAgent
-from openai import AsyncOpenAI
 
-from env import env
-
-# Use HUD inference gateway - see all models at https://hud.ai/models
-client = AsyncOpenAI(base_url="https://inference.hud.ai")
-
-
-async def test_tools_standalone():
-    """Test environment tools directly."""
-    print("=== Test 1: Standalone Tools ===")
-
-    async with env:
-        print(f"Tools: {[t.name for t in env.as_tools()]}")
-        for _ in range(3):
-            print(await env.call_tool("act"))
-
-
-async def test_scenario_manual():
-    """Test scenario with manual OpenAI calls."""
-    print("\n=== Test 2: Scenario (Manual Agent Loop) ===")
-
-    task = env("count-to", target=3)
-
-    async with hud.eval(task) as ctx:
-        messages = [{"role": "user", "content": ctx.prompt}]
-
-        while True:
-            response = await client.chat.completions.create(
-                model="gpt-4o",  # https://hud.ai/models
-                messages=messages,
-                tools=ctx.as_openai_chat_tools(),
-            )
-            msg = response.choices[0].message
-
-            if not msg.tool_calls:
-                break
-
-            messages.append(msg)
-            for tc in msg.tool_calls:
-                result = await ctx.call_tool(tc)
-                messages.append(result)
-
-
-async def test_scenario_agent():
-    """Test scenario with OpenAIChatAgent."""
-    print("\n=== Test 3: Scenario (Agent) ===")
-
-    task = env("count-to", target=5)
-
-    async with hud.eval(task) as ctx:
-        agent = OpenAIChatAgent.create(model="gpt-4o")  # https://hud.ai/models
-        await agent.run(ctx)
-
-
-async def test_distribution():
-    """Test multiple tasks with variants and groups for A/B testing."""
-    print("\n=== Test 4: Distribution (Variants + Groups) ===")
-
-    tasks = [env("count-to", target=3), env("count-to", target=5)]
-    variants = {"model": ["gpt-4o-mini", "gpt-4o"]}
-    group = 2
-
-    async with hud.eval(tasks, variants=variants, group=group) as ctx:
-        agent = OpenAIChatAgent.create(model=ctx.variants["model"])
-        await agent.run(ctx, max_steps=10)
+from tasks import ALL_TASKS
 
 
 async def main():
-    await test_tools_standalone()
-    await test_scenario_manual()
-    await test_scenario_agent()
-    await test_distribution()
+    available = sorted(ALL_TASKS)
+
+    parser = argparse.ArgumentParser(description="Run agent against a blank env task")
+    parser.add_argument("--task", default="count_to_3", choices=available)
+    parser.add_argument("--model", default="gpt-4o")
+    parser.add_argument("--max-steps", type=int, default=20)
+    parser.add_argument(
+        "--list", action="store_true", help="List available tasks and exit"
+    )
+    args = parser.parse_args()
+
+    if args.list:
+        for t in available:
+            print(t)
+        return
+
+    task = ALL_TASKS[args.task]
+
+    print(f"=== {args.task} ({args.model}) ===")
+    async with hud.eval(task, name=args.task) as ctx:
+        agent = OpenAIChatAgent.create(model=args.model)
+        await agent.run(ctx, max_steps=args.max_steps)
+        print(f"Reward: {ctx.reward}")
 
 
 if __name__ == "__main__":
