@@ -17,14 +17,12 @@ Run evaluations at scale directly on hud.ai with parallel execution and automati
 
 ## Option C: Python Script (this file)
 
-    # Run all tasks locally
-    python remote_test.py
-
     # Upload tasks to platform
     python remote_test.py --upload my-org/blank-tasks
 
+    # Run all tasks
+    python remote_test.py --platform my-org/blank-tasks --model gpt-4o
 
-Run the backend first: uvicorn backend.app:app --port 8005
 """
 
 import argparse
@@ -32,23 +30,12 @@ import asyncio
 
 import hud
 from hud.agents import OpenAIChatAgent
-from hud.datasets import save_tasks
+from hud.datasets import save_tasks, load_tasks
 from hud.eval.task import Task
 
 from tasks import ALL_TASKS
 
 ENV_NAME = "blank"
-
-
-async def test_all_tasks():
-    """Run all locally defined tasks."""
-    print(f"=== Running {len(ALL_TASKS)} tasks ===")
-
-    task_list = list(ALL_TASKS.values())
-
-    async with hud.eval(task_list) as ctx:
-        agent = OpenAIChatAgent.create(model="gpt-4o")
-        await agent.run(ctx)
 
 
 async def upload_to_platform(slug: str):
@@ -65,7 +52,7 @@ async def upload_to_platform(slug: str):
         for task in ALL_TASKS.values()
     ]
     save_tasks(slug, remote_tasks)
-    print(f"Saved {len(remote_tasks)} tasks -> hud eval {slug} --model gpt-4o")
+    print(f"Saved {len(remote_tasks)} tasks -> hud eval {slug} --model gpt-4o --remote")
 
 
 async def main():
@@ -75,12 +62,22 @@ async def main():
         metavar="SLUG",
         help="Upload tasks to platform (e.g. my-org/blank-tasks)",
     )
+    parser.add_argument(
+        "--platform",
+        metavar="SLUG",
+        help="Load and run tasks from platform slug",
+    )
+    parser.add_argument("--model", default="gpt-4o", help="Model to use")
     args = parser.parse_args()
 
     if args.upload:
         await upload_to_platform(args.upload)
     else:
-        await test_all_tasks()
+        print(f"=== Loading tasks from platform: {args.platform} ===")
+        tasks = load_tasks(args.platform)
+        async with hud.eval(tasks) as ctx:
+            agent = OpenAIChatAgent.create(model=args.model)
+            await agent.run(ctx)
 
 
 if __name__ == "__main__":

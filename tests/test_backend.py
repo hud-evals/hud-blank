@@ -81,5 +81,5 @@ def test_act_records_history(backend_app):
     state = client.get("/state").json()
     assert state["value"] == 2
     assert len(state["history"]) == 2
-    assert state["history"][0] == {"op": "add", "arg": 1, "result": 1}
-    assert state["history"][1] == {"op": "add", "arg": 1, "result": 2}
+    assert state["history"][0] == {"op": "act", "arg": 1, "result": 1}
+    assert state["history"][1] == {"op": "act", "arg": 1, "result": 2}

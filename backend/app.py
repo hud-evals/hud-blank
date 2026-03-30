@@ -37,7 +37,7 @@ def health():
 def act():
     """Increment the value by 1 (legacy counter endpoint)."""
     _state["value"] += 1
-    _state["history"].append({"op": "add", "arg": 1, "result": _state["value"]})
+    _state["history"].append({"op": "act", "arg": 1, "result": _state["value"]})
     return {"count": _state["value"]}
 
 

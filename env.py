@@ -98,13 +98,21 @@ async def count_to(target: int = 10) -> AsyncGenerator[Any, None]:
     """Count to a target number by calling act() repeatedly.
 
     Evaluation: partial credit — min(1.0, current / target).
+    Scores 0 if any tool other than act() is used.
     """
     await http_client.post("/reset")
 
-    yield f"Call act() until the counter reaches {target}."
+    yield f"Call act() until the counter reaches {target}. Do not use any other tools."
 
-    current = (await http_client.get("/state")).json().get("value", 0)
-    yield min(1.0, current / target) if target > 0 else 1.0
+    data = (await http_client.get("/state")).json()
+    current = data.get("value", 0)
+    history = data.get("history", [])
+
+    # Fail if the agent used any tool other than act()
+    if any(entry.get("op") != "act" for entry in history):
+        yield 0.0
+    else:
+        yield min(1.0, current / target) if target > 0 else 1.0
 
 
 @env.scenario("compute-expression")
