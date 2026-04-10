@@ -7,6 +7,8 @@ This demonstrates:
 - Parametrized scenarios that can generate many task variants
 """
 
+import subprocess
+import sys
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -52,6 +54,21 @@ async def multiply(n: int) -> str:
 async def get_value() -> str:
     """Get the current value."""
     return f"Value: {_state['value']}"
+
+
+@env.tool()
+async def hud_validate() -> str:
+    """Run the test suite to validate the environment is working correctly."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+    output = result.stdout + result.stderr
+    if result.returncode != 0:
+        raise RuntimeError(output or f"pytest exited with code {result.returncode}")
+    return output
 
 
 # ---------------------------------------------------------------------------

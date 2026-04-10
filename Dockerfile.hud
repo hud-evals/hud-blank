@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir .
 COPY env.py ./
 COPY backend/ ./backend/
 COPY tasks.py ./
+COPY tests/ ./tests/
 
 ENV BACKEND_PORT=8005
 
