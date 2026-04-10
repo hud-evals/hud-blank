@@ -1,6 +1,6 @@
 # Blank Environment
 
-A minimal counter-based HUD environment template.
+A minimal HUD environment template with two parametrized scenarios.
 
 ## 1. Deploy to Platform
 
@@ -13,27 +13,30 @@ If you haven't already, connect this repo to hud.ai:
 
 Once deployed, your environment is accessible by its slug (e.g., `my-org/blank`).
 
-## 2. Define Tools and Scenarios
+## 2. Scenarios
 
-Tools are functions agents can call. Scenarios define the evaluation lifecycle.
+### count-letters (no tools)
+
+Count occurrences of a letter in a word. Pure text reasoning — no tools available.
 
 ```python
-from hud import Environment
+@env.scenario("count-letters", exclude_tools=["*"])
+async def count_letters(word: str = "strawberry", letter: str = "r"):
+    answer = yield f"How many '{letter}' in '{word}'?"
+    correct = str(word.lower().count(letter.lower()))
+    yield 1.0 if answer and correct in answer else 0.0
+```
 
-env = Environment(name="blank")
+### evaluate-expression (with tools)
 
-@env.tool()
-async def act() -> str:
-    """Increment the counter by 1."""
-    resp = await http_client.post("/act")
-    return f"Counter: {resp.json().get('count', 0)}"
+Compute a math expression using calculator tools (add, subtract, multiply).
 
-@env.scenario("count-to")
-async def count_to(target: int = 10):
-    await http_client.post("/reset")                    # Setup
-    answer = yield f"Count to {target}"                 # Prompt → agent runs
-    current = (await http_client.get("/state")).json()["count"]
-    yield 1.0 if current >= target else 0.0             # Reward
+```python
+@env.scenario("evaluate-expression")
+async def evaluate_expression(expression: str = "3 + 2 * 3", expected: int = 9):
+    _reset()
+    yield f"Compute: {expression}. Use add/subtract/multiply tools. Value starts at 0."
+    yield 1.0 if _state["value"] == expected else 0.0
 ```
 
 ## 3. Create Tasks from Scenarios
@@ -43,16 +46,17 @@ Tasks are scenario instances with specific arguments.
 **In Code:**
 ```python
 tasks = [
-    env("count-to", target=3),
-    env("count-to", target=10),
+    env("count-letters", word="strawberry", letter="r"),
+    env("count-letters", word="mississippi", letter="s"),
+    env("evaluate-expression", expression="3 + 2 * 3", expected=9),
 ]
 ```
 
 **From JSON:**
 ```json
 [
-  {"env": {"name": "my-org/blank"}, "scenario": "count-to", "args": {"target": 3}},
-  {"env": {"name": "my-org/blank"}, "scenario": "count-to", "args": {"target": 10}}
+  {"env": {"name": "my-org/blank"}, "scenario": "count-letters", "args": {"word": "strawberry", "letter": "r"}},
+  {"env": {"name": "my-org/blank"}, "scenario": "evaluate-expression", "args": {"expression": "3 + 2 * 3", "expected": 9}}
 ]
 ```
 
@@ -72,19 +76,19 @@ Run evaluations at scale directly on [hud.ai](https://hud.ai) with parallel exec
 
 **CLI:**
 ```bash
-hud eval ./remote_tasks.json --model gpt-4o --remote  # https://hud.ai/models
+hud eval ./remote.json --model gpt-4o --remote
 hud eval my-org/blank-tasks --model gpt-4o --remote --group 5
 ```
 
 **Python:**
 ```python
 import hud
-from hud.agents import OpenAIChatAgent  # See all models: https://hud.ai/models
+from hud.agents import OpenAIChatAgent
 
-tasks = [env("count-to", target=3), env("count-to", target=5)]
+tasks = [env("count-letters", word="strawberry", letter="r")]
 
 async with hud.eval(tasks) as ctx:
-    agent = OpenAIChatAgent.create(model="gpt-4o")  # Uses inference.hud.ai
+    agent = OpenAIChatAgent.create(model="gpt-4o")
     await agent.run(ctx)
 
 # Results are automatically traced to hud.ai
@@ -100,11 +104,12 @@ async with hud.eval(tasks, variants={"model": ["gpt-4o-mini", "gpt-4o"]}, group=
 ## Local Development
 
 ```bash
-# Start the backend
-uvicorn backend.app:app --port 8005 --reload
+# List available tasks
+python local_test.py --list
 
-# Test locally
-python local_test.py
+# Run a task locally
+python local_test.py --task count_r_strawberry
+python local_test.py --task eval_order_of_ops --model gpt-4o
 
 # Test with remote tasks
 python remote_test.py
@@ -115,10 +120,10 @@ python remote_test.py
 ```
 hud-blank/
 ├── env.py              # Environment + tools + scenarios
-├── backend/app.py      # FastAPI backend for state
-├── local_test.py       # Local testing examples
+├── tasks.py            # Sample task instances
+├── local_test.py       # Local testing script
 ├── remote_test.py      # Platform integration examples
-├── remote_tasks.json   # Task definitions
+├── remote.json         # Example task definition
 ├── Dockerfile.hud
 └── pyproject.toml
 ```

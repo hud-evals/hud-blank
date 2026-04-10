@@ -1,11 +1,9 @@
 """Local test script for the blank environment.
 
-Run the backend first: uvicorn backend.app:app --port 8005
-
 Usage:
     python local_test.py --list
-    python local_test.py --task count_to_3
-    python local_test.py --task reach_efficient_100 --model gpt-4o
+    python local_test.py --task count_r_strawberry
+    python local_test.py --task eval_order_of_ops --model gpt-4o
 """
 
 import argparse
@@ -21,7 +19,7 @@ async def main():
     available = sorted(ALL_TASKS)
 
     parser = argparse.ArgumentParser(description="Run agent against a blank env task")
-    parser.add_argument("--task", default="count_to_3", choices=available)
+    parser.add_argument("--task", default="count_r_strawberry", choices=available)
     parser.add_argument("--model", default="gpt-4o")
     parser.add_argument("--max-steps", type=int, default=20)
     parser.add_argument(
