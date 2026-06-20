@@ -1,14 +1,18 @@
-FROM python:3.11-bookworm
+FROM python:3.11-slim
+
+# uv for a fast, reproducible install.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Install dependencies
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir .
+# Dependency layer first (cached across env/task edits). uv.lock is optional
+# (it's git-ignored): pin to it when present, else resolve from pyproject.
+COPY pyproject.toml uv.lock* ./
+RUN uv sync --frozen --no-dev || uv sync --no-dev
 
-# Copy source code
-COPY env.py ./
-COPY tasks.py ./
-COPY tests/ ./tests/
+# Env + task modules.
+COPY env.py tasks.py ./
 
-CMD ["hud", "dev", "env:env", "--stdio"]
+# Serve the v6 control channel; @env.initialize brings up the in-process tools MCP capability.
+EXPOSE 8765
+CMD ["/app/.venv/bin/hud", "serve", "env:env", "--host", "0.0.0.0", "--port", "8765"]

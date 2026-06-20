@@ -1,17 +1,21 @@
 [project]
 name = "hud-blank"
 version = "0.1.0"
-description = "A minimal HUD environment with letter counting and math expression scenarios"
-requires-python = ">=3.11"
+description = "A minimal HUD v6 environment: a text-reasoning task and a tool-using task."
+# v6 SDK caps at <3.13; pin the upper bound so uv does not pick 3.13 and fail.
+requires-python = ">=3.11,<3.13"
 dependencies = [
-    "hud-python>=0.5.0",
-    "pytest>=9.0.2",
+    "hud-python>=0.6.0",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23.0",
+]
 
-[tool.hatch.build.targets.wheel]
-packages = ["."]
-only-include = ["env.py", "tasks.py"]
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
