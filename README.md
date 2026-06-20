@@ -1,6 +1,6 @@
-# Blank Environment
+# Blank Environment (HUD v6)
 
-A minimal HUD **v6** environment to copy from. It shows the two core pieces in
+A minimal HUD v6 environment to copy from. It shows the two core pieces in
 the smallest useful form:
 
 - **`count-letters`** — a pure text-reasoning task (`@env.template`): yield a
@@ -32,9 +32,18 @@ Add `--full` to run every task in the dataset.
 
 ```bash
 hud serve env:env        # serve the environment locally
-uv run pytest tests/     # run the test suite
 uv run python env.py     # no-model smoke: boot a task, print the reward
 ```
+
+## Tests
+
+```bash
+uv run pytest tests/
+```
+
+Offline unit tests covering both templates (`count-letters`, `evaluate-expression`),
+the calculator tools, and the served `mcp` capability. No model, gateway, or live
+keys are called.
 
 ## Deploy & run remotely
 
@@ -60,7 +69,7 @@ calculator is available env-wide; `count-letters` simply ignores it.
 | `env.py` | The environment: the two templates + the calculator MCP capability. Entry point (`hud serve env:env`). |
 | `tasks.py` | Concrete task rows for `hud eval` / `hud sync tasks`. |
 | `pyproject.toml` | Dependencies + uv config (drives `uv sync`, `uv run pytest`). |
-| `Dockerfile.hud` | Image built by `hud deploy`; installs from `uv.lock`, serves `env:env`. |
+| `Dockerfile.hud` | Image built by `hud deploy`; `uv sync`s deps and serves `env:env`. |
 | `tests/` | Unit tests for the templates + tools. |
 
 ## Documentation

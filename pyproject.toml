@@ -2,7 +2,8 @@
 name = "hud-blank"
 version = "0.1.0"
 description = "A minimal HUD v6 environment: a text-reasoning task and a tool-using task."
-requires-python = ">=3.11"
+# v6 SDK caps at <3.13; pin the upper bound so uv does not pick 3.13 and fail.
+requires-python = ">=3.11,<3.13"
 dependencies = [
     "hud-python>=0.6.0",
 ]
@@ -10,7 +11,11 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8",
+    "pytest-asyncio>=0.23.0",
 ]
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

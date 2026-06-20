@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+.claude/
 .hud/
 .hud_eval.toml
 .pytest_cache/

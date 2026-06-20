@@ -8,7 +8,7 @@ WORKDIR /app
 # Dependency layer first (cached across env/task edits). uv.lock is optional
 # (it's git-ignored): pin to it when present, else resolve from pyproject.
 COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev 2>/dev/null || uv sync --no-dev
+RUN uv sync --frozen --no-dev || uv sync --no-dev
 
 # Env + task modules.
 COPY env.py tasks.py ./
