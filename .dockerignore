@@ -1,9 +1,12 @@
-__pycache__/
-*.pyc
 .venv/
+.git/
+.gitignore
 .hud/
 .hud_eval.toml
+__pycache__/
+*.pyc
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
-uv.lock
+tests/
+README.md

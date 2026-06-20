@@ -1,4 +1,4 @@
-"""Tests for the blank environment scenarios."""
+"""Tests for the blank environment tasks."""
 
 # pyright: reportArgumentType=false
 
@@ -17,15 +17,15 @@ from env import (
 
 def run(coro):
     """Helper to run async code in tests."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class TestCountLetters:
-    """Tests for the count-letters scenario."""
+    """Tests for the count-letters task."""
 
     def test_strawberry_r(self):
         async def _test():
-            gen = count_letters(word="strawberry", letter="r")
+            gen = count_letters.func(word="strawberry", letter="r")
             prompt = await gen.asend(None)
             assert prompt == "How many 'r' in 'strawberry'?"
             reward = await gen.asend("There are 3 r's")
@@ -35,7 +35,7 @@ class TestCountLetters:
 
     def test_strawberry_r_wrong(self):
         async def _test():
-            gen = count_letters(word="strawberry", letter="r")
+            gen = count_letters.func(word="strawberry", letter="r")
             await gen.asend(None)
             reward = await gen.asend("There are 2 r's")
             assert reward == 0.0
@@ -44,7 +44,7 @@ class TestCountLetters:
 
     def test_mississippi_s(self):
         async def _test():
-            gen = count_letters(word="mississippi", letter="s")
+            gen = count_letters.func(word="mississippi", letter="s")
             prompt = await gen.asend(None)
             assert prompt == "How many 's' in 'mississippi'?"
             reward = await gen.asend("4")
@@ -54,7 +54,7 @@ class TestCountLetters:
 
     def test_case_insensitive(self):
         async def _test():
-            gen = count_letters(word="BANANA", letter="a")
+            gen = count_letters.func(word="BANANA", letter="a")
             await gen.asend(None)
             reward = await gen.asend("3")
             assert reward == 1.0
@@ -63,7 +63,7 @@ class TestCountLetters:
 
     def test_no_matches(self):
         async def _test():
-            gen = count_letters(word="hello", letter="z")
+            gen = count_letters.func(word="hello", letter="z")
             await gen.asend(None)
             reward = await gen.asend("0")
             assert reward == 1.0
@@ -72,11 +72,11 @@ class TestCountLetters:
 
 
 class TestEvaluateExpression:
-    """Tests for the evaluate-expression scenario."""
+    """Tests for the evaluate-expression task."""
 
     def test_correct_result(self):
         async def _test():
-            gen = evaluate_expression(expression="3 + 2 * 3", expected=9)
+            gen = evaluate_expression.func(expression="3 + 2 * 3", expected=9)
             prompt = await gen.asend(None)
             assert "3 + 2 * 3" in prompt
             # Simulate agent computing 3 + 2*3 = 9
@@ -91,7 +91,7 @@ class TestEvaluateExpression:
 
     def test_wrong_result(self):
         async def _test():
-            gen = evaluate_expression(expression="5 + 5", expected=10)
+            gen = evaluate_expression.func(expression="5 + 5", expected=10)
             await gen.asend(None)
             await add(5)  # Only added once, value = 5
             reward = await gen.asend("Done")
@@ -99,18 +99,18 @@ class TestEvaluateExpression:
 
         run(_test())
 
-    def test_reset_between_scenarios(self):
+    def test_reset_between_tasks(self):
         async def _test():
-            # First scenario
-            gen1 = evaluate_expression(expression="2 + 2", expected=4)
+            # First task
+            gen1 = evaluate_expression.func(expression="2 + 2", expected=4)
             await gen1.asend(None)
             await add(4)
             reward1 = await gen1.asend("Done")
             assert reward1 == 1.0
             assert _state["value"] == 4
 
-            # Second scenario should reset
-            gen2 = evaluate_expression(expression="3 + 3", expected=6)
+            # Second task should reset
+            gen2 = evaluate_expression.func(expression="3 + 3", expected=6)
             await gen2.asend(None)
             assert _state["value"] == 0  # Should be reset
             await add(6)
